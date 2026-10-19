@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Space Blast 84</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=Russo+One&display=swap">
+<style>
+/* Layout: one wood-cased CRT set centred on a dark wall, scaled to fit; screen, knobs and legend all live inside the set. */
+:root {
+  --wall: #15120e;
+  --wall-2: #241d16;
+  --wood: #6c4025;
+  --wood-dark: #3b2113;
+  --plastic: #1c1916;
+  --metal: #cbc4b5;
+  --metal-dark: #857e71;
+  --ink: #ece3cf;
+  --ink-dim: #a5997f;
+  --cap: #2a1d14;
+  --led: #5dff7e;
+  --seg: #ff5a33;
+  --glow: rgba(199, 240, 216, .20);
+  --font-pixel: "Pixelify Sans", ui-monospace, "Courier New", monospace;
+  --font-brand: "Russo One", "Arial Black", Impact, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at 50% 42%, var(--wall-2), var(--wall) 72%);
+  color: var(--ink);
+  font-family: var(--font-pixel);
+  display: grid;
+  place-items: center;
+  padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  overflow-x: hidden;
+}
+.stage { position: relative; width: 900px; height: 600px; }
+.tv {
+  position: absolute; left: 0; top: 0;
+  width: 900px; height: 600px;
+  transform-origin: 0 0;
+  border-radius: 38px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.10), transparent 16%, transparent 84%, rgba(0,0,0,.35)),
+    repeating-linear-gradient(91deg, rgba(0,0,0,.10) 0 2px, transparent 2px 9px, rgba(255,255,255,.04) 9px 10px, transparent 10px 17px),
+    linear-gradient(180deg, var(--wood), var(--wood-dark));
+  box-shadow:
+    0 0 0 3px #26150b,
+    inset 0 2px 0 rgba(255,255,255,.18),
+    inset 0 -4px 0 rgba(0,0,0,.4),
+    0 34px 60px rgba(0,0,0,.65),
+    0 0 140px var(--glow);
+  outline: none;
+  transition: box-shadow .6s;
+}
+.tv:focus-visible { outline: 2px dashed var(--ink-dim); outline-offset: 8px; }
+
+/* Screen */
+.bezel {
+  position: absolute; left: 28px; top: 28px; width: 696px; height: 432px;
+  border-radius: 30px;
+  background: linear-gradient(160deg, #3a3530, var(--plastic) 40%, #0c0b0a);
+  box-shadow: inset 0 2px 3px rgba(255,255,255,.12), inset 0 -2px 5px rgba(0,0,0,.6);
+}
+.screen {
+  position: absolute; left: 12px; top: 24px; width: 672px; height: 384px;
+  border-radius: 26px / 30px;
+  overflow: hidden;
+  background: #040504;
+  box-shadow: 0 0 0 2px #000, 0 0 0 5px rgba(255,255,255,.05);
+}
+.picture { position: absolute; inset: 0; transform-origin: 50% 50%; }
+.picture canvas {
+  display: block; width: 672px; height: 384px;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  filter: contrast(1.06) saturate(1.1);
+}
+.scan {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    repeating-linear-gradient(180deg, rgba(0,0,0,.20) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(255,0,0,.035) 0 1px, rgba(0,255,0,.035) 1px 2px, rgba(0,0,255,.035) 2px 3px);
+}
+.roll {
+  position: absolute; left: 0; right: 0; top: 0; height: 90px; pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,.05), transparent);
+  animation: roll 8s linear infinite;
+}
+.vignette {
+  position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: radial-gradient(ellipse 78% 74% at 50% 50%, transparent 58%, rgba(0,0,0,.55) 100%);
+  box-shadow: inset 0 0 40px rgba(0,0,0,.75);
+}
+.glare {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 45% 30% at 22% 14%, rgba(255,255,255,.10), transparent 70%),
+    linear-gradient(162deg, rgba(255,255,255,.07) 0%, transparent 38%);
+}
+.picture.on { animation: crt-on .8s cubic-bezier(.2,.8,.3,1) both, flicker .14s steps(2) .8s infinite; }
+.picture.off { animation: crt-off .5s ease-in both; }
+@keyframes crt-on {
+  0%   { transform: scale(0, .004); filter: brightness(5); }
+  25%  { transform: scale(1, .004); filter: brightness(4); }
+  100% { transform: scale(1, 1);    filter: brightness(1); }
+}
+@keyframes crt-off {
+  0%   { transform: scale(1, 1);       filter: brightness(1); opacity: 1; }
+  45%  { transform: scale(1, .004);    filter: brightness(4); opacity: 1; }
+  80%  { transform: scale(.01, .004);  filter: brightness(6); opacity: 1; }
+  100% { transform: scale(0, 0);       opacity: 0; }
+}
+@keyframes flicker { 0% { opacity: .975; } 100% { opacity: 1; } }
+@keyframes roll { from { transform: translateY(-100px); } to { transform: translateY(400px); } }
+
+/* Side panel: channel readout, knobs, speaker */
+.side {
+  position: absolute; left: 740px; top: 28px; width: 132px; height: 432px;
+  box-sizing: border-box; padding-block: 18px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #2b2620, #13100d);
+  box-shadow: inset 0 2px 3px rgba(255,255,255,.10), inset 0 -2px 5px rgba(0,0,0,.6);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.chan {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: #0c0503; border-radius: 6px; padding: 4px 14px 2px;
+  box-shadow: inset 0 0 0 1px #000, 0 1px 0 rgba(255,255,255,.08);
+}
+.chan b {
+  font: 600 28px/1 var(--font-pixel); color: var(--seg);
+  text-shadow: 0 0 8px var(--seg); font-variant-numeric: tabular-nums;
+}
+.label { font: 400 11px/1 var(--font-pixel); letter-spacing: .14em; color: var(--ink-dim); }
+.knob {
+  position: relative; width: 62px; height: 62px; margin-top: 8px;
+  border: none; border-radius: 50%; cursor: pointer; padding: 0;
+  background:
+    repeating-conic-gradient(rgba(0,0,0,.28) 0 5deg, rgba(255,255,255,.10) 5deg 10deg),
+    radial-gradient(circle at 35% 30%, #f3efe6, var(--metal) 40%, var(--metal-dark) 80%);
+  box-shadow: 0 4px 0 rgba(0,0,0,.6), 0 0 0 4px #0b0a09, 0 0 0 5px #3a352f;
+  transform: rotate(var(--rot, -40deg));
+  transition: transform .35s cubic-bezier(.3,1.6,.5,1);
+}
+.knob::before {
+  content: ""; position: absolute; inset: 9px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #ebe6db, #a59f92);
+  box-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+.knob i {
+  position: absolute; left: 50%; top: 7px; width: 4px; height: 20px; margin-left: -2px;
+  background: var(--cap); border-radius: 2px;
+}
+.knob:focus-visible { outline: 2px dashed var(--ink); outline-offset: 6px; }
+.grille {
+  flex: 1; width: 90px; margin-top: 10px; border-radius: 8px;
+  background: repeating-linear-gradient(180deg, #0a0908 0 4px, #3b342b 4px 7px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.8);
+}
+
+/* Bottom strip: brand plate, controls legend, power */
+.foot {
+  position: absolute; left: 28px; right: 28px; top: 478px; height: 96px;
+  display: flex; align-items: center; gap: 26px;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 6px;
+  background: linear-gradient(180deg, #ebe6da, #a9a395);
+  color: var(--cap);
+  box-shadow: 0 2px 0 rgba(0,0,0,.5), inset 0 1px 0 #fff;
+  font: 22px/1 var(--font-brand); letter-spacing: .05em;
+}
+.brand span {
+  font-size: 15px; color: var(--ink); background: #b0281a;
+  padding: 4px 6px 3px; border-radius: 3px;
+}
+.legend {
+  flex: 1; list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, auto); gap: 10px 20px;
+  font: 400 15px/1 var(--font-pixel); color: var(--ink);
+  text-shadow: 0 1px 0 rgba(0,0,0,.5);
+}
+.legend li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+kbd {
+  font: 600 12px/1 var(--font-pixel); color: var(--cap);
+  background: linear-gradient(#f3ede0, #c6bdab);
+  padding: 4px 7px 3px; border-radius: 4px;
+  box-shadow: 0 2px 0 #5d5546;
+  text-shadow: none;
+}
+.power { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.led {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--led); box-shadow: 0 0 10px var(--led), inset 0 0 2px #fff;
+  transition: background .3s, box-shadow .3s;
+}
+.led.dead { background: #163a1e; box-shadow: none; }
+#power {
+  width: 58px; height: 30px; border: none; border-radius: 6px; cursor: pointer;
+  background: linear-gradient(#3b352e, #181512); color: var(--ink-dim);
+  font: 600 12px/1 var(--font-pixel); letter-spacing: .1em;
+  box-shadow: 0 3px 0 #000, inset 0 1px 0 rgba(255,255,255,.15);
+}
+#power:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+#power:focus-visible { outline: 2px dashed var(--ink); outline-offset: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .picture.on { animation: none; }
+  .picture.off { animation: none; opacity: 0; }
+  .roll { animation: none; display: none; }
+  .knob { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="tv" id="tv" tabindex="0" aria-label="Игра Space Blast. Стрелки — полёт, пробел — огонь, Enter — старт, Tab — пауза">
+    <div class="bezel">
+      <div class="screen">
+        <div class="picture on" id="picture">
+          <canvas id="game" width="168" height="96"></canvas>
+          <div class="scan"></div>
+          <div class="roll"></div>
+        </div>
+        <div class="vignette"></div>
+        <div class="glare"></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="chan"><span class="label">КАНАЛ</span><b id="chan">01</b></div>
+      <button class="knob" id="knobColor" aria-label="Переключить палитру (C)"><i></i></button>
+      <span class="label">ЦВЕТ</span>
+      <button class="knob" id="knobSound" aria-label="Включить или выключить звук (M)"><i></i></button>
+      <span class="label">ЗВУК</span>
+      <div class="grille"></div>
+    </div>
+
+    <div class="foot">
+      <div class="brand">ГАЛАКТИКА<span>84</span></div>
+      <ul class="legend">
+        <li><kbd>←↑↓→</kbd><kbd>WASD</kbd> полёт</li>
+        <li><kbd>ПРОБЕЛ</kbd> огонь</li>
+        <li><kbd>ENTER</kbd> старт</li>
+        <li><kbd>TAB</kbd> пауза</li>
+        <li><kbd>C</kbd> цвет</li>
+        <li><kbd>M</kbd> звук</li>
+      </ul>
+      <div class="power">
+        <span class="led" id="led"></span>
+        <button id="power" aria-label="Питание телевизора">ВКЛ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- Screen fit ----------
+  const stage = document.getElementById('stage');
+  const tv = document.getElementById('tv');
+  function fit() {
+    const w = document.documentElement.clientWidth - 32;
+    const h = window.innerHeight - 32;
+    const s = Math.max(0.2, Math.min(1, w / 900, h / 600));
+    stage.style.width = 900 * s + 'px';
+    stage.style.height = 600 * s + 'px';
+    tv.style.transform = `scale(${s})`;
+  }
+  addEventListener('resize', fit);
+  fit();
+
+  // ---------- Constants & palettes ----------
+  const W = 168, H = 96, TOP = 8;
+  const cv = document.getElementById('game');
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  const PALS = {
+    lcd: { mono: true, bg: '#c7f0d8', fg: '#43523d', dim: '#97b8a2', glow: 'rgba(199,240,216,.20)',
+           tEdge: '#43523d', tBody: '#43523d', tDot: '#97b8a2' },
+    nes: { mono: false, bg: '#0c0a24', fg: '#fcfcfc', dim: '#4a4a8c', glow: 'rgba(110,130,255,.22)',
+           tEdge: '#58d854', tBody: '#00a800', tDot: '#005800' }
+  };
+  let palName = 'lcd', pal = PALS.lcd;
+
+  // ---------- Sprites ('.' empty, '#' body, 'x' detail, 'o' flame) ----------
+  const DEF = {
+    player: { c: { '#': '#3cbcfc', x: '#fcfcfc', o: '#f8b800' }, f: [
+      ['###.........', '.####.......', '.#xx####....', 'oo#########.', '.#xx####....', '.####.......', '###.........'],
+      ['###.........', '.####.......', '.#xx####....', '.o#########.', '.#xx####....', '.####.......', '###.........']
+    ]},
+    e1: { c: { '#': '#b8f818', x: '#f83800' }, f: [
+      ['...##...', '..####..', '.##xx##.', '########', '..#..#..', '.#.##.#.'],
+      ['...##...', '..####..', '.##xx##.', '########', '.#.##.#.', '#......#']
+    ]},
+    e2: { c: { '#': '#bcbcbc', x: '#fca044' }, f: [
+      ['...###...', '.#######.', '#x#x#x#x#', '.#######.', '..#...#..'],
+      ['...###...', '.#######.', '##x#x#x##', '.#######.', '.#.....#.']
+    ]},
+    e3: { c: { '#': '#f878f8', x: '#fcfcfc' }, f: [
+      ['....####', '..####..', '#####xx#', '..####..', '....####'],
+      ['...#####', '..####..', '#####xx#', '..####..', '...#####']
+    ]},
+    boss: { c: { '#': '#d82800', x: '#fce0a8' }, f: [[
+      '.......######.......',
+      '.....##########.....',
+      '...##############...',
+      '..####xx####xx####..',
+      '.#####xx####xx#####.',
+      '####################',
+      '##..##..####..##..##',
+      '####################',
+      '.##################.',
+      '..##.##.####.##.##..',
+      '...##############...',
+      '....############....',
+      '......########......',
+      '........####........'
+    ]]},
+    pb: { c: { '#': '#fce0a8' }, f: [['###']] },
+    eb: { c: { '#': '#fca044' }, f: [['##', '##']] },
+    boom: { c: { '#': '#fca044', x: '#fcfcfc' }, f: [
+      ['.......', '...#...', '..#x#..', '...#...', '.......'],
+      ['...#...', '.#.x.#.', '..x.x..', '.#.x.#.', '...#...'],
+      ['#..#..#', '.......', '#.....#', '.......', '#..#..#']
+    ]},
+    iheart: { c: { '#': '#f83800' }, f: [['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...']] },
+    itriple: { c: { '#': '#3cbcfc', x: '#fcfcfc' }, f: [['#######', '#xxxxx#', '#x###x#', '#xx#xx#', '#xx#xx#', '#######']] },
+    hheart: { c: { '#': '#f83800' }, f: [['.#.#.', '#####', '.###.', '..#..']] }
+  };
+  const SIZE = {};
+  for (const k in DEF) SIZE[k] = { w: Math.max(...DEF[k].f[0].map(r => r.length)), h: DEF[k].f[0].length };
+
+  let S = {};
+  function build(rows, map) {
+    const c = document.createElement('canvas');
+    c.width = Math.max(...rows.map(r => r.length));
+    c.height = rows.length;
+    const g = c.getContext('2d');
+    rows.forEach((r, y) => [...r].forEach((ch, x) => {
+      if (ch === '.') return;
+      // On the LCD every lit pixel is the same ink; detail pixels become holes so faces and cockpits still read.
+      g.fillStyle = pal.mono ? (ch === 'x' ? pal.bg : pal.fg) : (map[ch] || map['#']);
+      g.fillRect(x, y, 1, 1);
+    }));
+    return c;
+  }
+  function buildAll() {
+    S = {};
+    for (const k in DEF) S[k] = DEF[k].f.map(rows => build(rows, DEF[k].c));
+  }
+  function spr(name, f, x, y) { ctx.drawImage(S[name][f], Math.round(x), Math.round(y)); }
+
+  // ---------- 3x5 pixel font ----------
+  const FONT = {
+    A: '.#./#.#/###/#.#/#.#', B: '##./#.#/##./#.#/##.', C: '.##/#../#../#../.##', D: '##./#.#/#.#/#.#/##.',
+    E: '###/#../##./#../###', F: '###/#../##./#../#..', G: '.##/#../#.#/#.#/.##', H: '#.#/#.#/###/#.#/#.#',
+    I: '###/.#./.#./.#./###', J: '..#/..#/..#/#.#/.#.', K: '#.#/#.#/##./#.#/#.#', L: '#../#../#../#../###',
+    M: '#.#/###/###/#.#/#.#', N: '##./#.#/#.#/#.#/#.#', O: '.#./#.#/#.#/#.#/.#.', P: '##./#.#/##./#../#..',
+    Q: '.#./#.#/#.#/##./.##', R: '##./#.#/##./#.#/#.#', S: '.##/#../.#./..#/##.', T: '###/.#./.#./.#./.#.',
+    U: '#.#/#.#/#.#/#.#/###', V: '#.#/#.#/#.#/#.#/.#.', W: '#.#/#.#/###/###/#.#', X: '#.#/#.#/.#./#.#/#.#',
+    Y: '#.#/#.#/.#./.#./.#.', Z: '###/..#/.#./#../###',
+    0: '###/#.#/#.#/#.#/###', 1: '.#./##./.#./.#./###', 2: '##./..#/.#./#../###', 3: '##./..#/.#./..#/##.',
+    4: '#.#/#.#/###/..#/..#', 5: '###/#../##./..#/##.', 6: '.##/#../###/#.#/###', 7: '###/..#/.#./.#./.#.',
+    8: '###/#.#/###/#.#/###', 9: '###/#.#/###/..#/##.',
+    ':': '.../.#./.../.#./...', '-': '.../.../###/.../...', '!': '.#./.#./.#./.../.#.', ' ': '.../.../.../.../...'
+  };
+  for (const k in FONT) FONT[k] = FONT[k].split('/');
+  const textW = (s, sc = 1) => s.length * 4 * sc - sc;
+  function text(s, x, y, sc = 1, color = pal.fg) {
+    ctx.fillStyle = color;
+    let cx = Math.round(x);
+    for (const ch of s) {
+      const g = FONT[ch] || FONT[' '];
+      for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++)
+        if (g[r][c] === '#') ctx.fillRect(cx + c * sc, y + r * sc, sc, sc);
+      cx += 4 * sc;
+    }
+  }
+  const textC = (s, y, sc = 1, color) => text(s, (W - textW(s, sc)) / 2, y, sc, color);
+  const pad = n => String(Math.min(99999, n)).padStart(5, '0');
+
+  // ---------- Sound ----------
+  let ac = null, muted = false;
+  function unlockAudio() {
+    if (ac) return;
+    try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; }
+  }
+  function tone(f, d, type = 'square', f2 = 0, vol = 0.05, delay = 0) {
+    if (!ac || muted) return;
+    try {
+      const t0 = ac.currentTime + delay;
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f, t0);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
+      g.gain.setValueAtTime(vol, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+      o.connect(g).connect(ac.destination);
+      o.start(t0); o.stop(t0 + d + 0.02);
+    } catch (e) {}
+  }
+  const sfx = {
+    shoot: () => tone(1200, 0.05, 'square', 600, 0.025),
+    boom: () => tone(220, 0.22, 'sawtooth', 40, 0.06),
+    hit: () => tone(160, 0.45, 'square', 40, 0.09),
+    up: () => { tone(660, 0.07, 'square', 0, 0.05); tone(990, 0.1, 'square', 0, 0.05, 0.07); },
+    eshot: () => tone(300, 0.08, 'triangle', 200, 0.05),
+    start: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.09, 'square', 0, 0.045, i * 0.08)),
+    over: () => [392, 330, 262, 196].forEach((f, i) => tone(f, 0.18, 'square', 0, 0.05, i * 0.16)),
+    warn: () => tone(880, 0.12, 'square', 440, 0.04),
+    bossdown: () => [262, 330, 392, 523, 659, 784].forEach((f, i) => tone(f, 0.1, 'square', 0, 0.05, i * 0.07))
+  };
+
+  // ---------- World ----------
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const ov = (ax, ay, aw, ah, bx, by, bw, bh) => ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+
+  const stars = Array.from({ length: 36 }, (_, i) => ({ x: rnd(0, W), y: rnd(TOP + 1, H - 14), l: i % 3 === 0 }));
+
+  const bot = new Array(W + 2).fill(4), topT = new Array(W + 2).fill(0);
+  let tAcc = 0, col = 0, hb = 5, ht = 0, ceil = false, ceilT = 220;
+  function genCol() {
+    col++;
+    if (Math.random() < 0.25) hb += Math.random() < 0.5 ? -1 : 1;
+    hb = clamp(hb, 2, 12);
+    if (--ceilT <= 0) { ceil = !ceil; ceilT = ceil ? rnd(120, 240) : rnd(260, 460); }
+    if (ceil) { if (Math.random() < 0.3) ht += Math.random() < 0.55 ? 1 : -1; ht = clamp(ht, 1, 8); }
+    else if (ht > 0 && Math.random() < 0.3) ht--;
+    bot.push(hb); bot.shift();
+    topT.push(ht); topT.shift();
+  }
+  for (let i = 0; i < W + 2; i++) genCol();
+
+  let state = 'title', t = 0, hi = 0, newRecord = false;
+  try { hi = parseInt(localStorage.getItem('spaceblast.hi') || '0', 10) || 0; } catch (e) {}
+  let player, bullets, ebullets, enemies, booms, items, boss, score, lives, level, nextBoss, spawnT, triple, shake, warn, banner;
+
+  function reset() {
+    player = { x: 12, y: 46, cd: 0, inv: 90 };
+    bullets = []; ebullets = []; enemies = []; booms = []; items = [];
+    boss = null; score = 0; lives = 3; level = 1; nextBoss = 1500;
+    spawnT = 90; triple = 0; shake = 0; warn = 0; banner = 0; newRecord = false;
+  }
+  reset();
+
+  function startGame() { reset(); state = 'play'; banner = 120; sfx.start(); }
+
+  function boom(x, y, delay = 0) { booms.push({ x, y, f: -delay }); }
+
+  function shootAt(x, y, sp) {
+    const dx = player.x + 6 - x, dy = player.y + 3 - y, d = Math.hypot(dx, dy) || 1;
+    ebullets.push({ x, y, vx: Math.min(-0.4, dx / d * sp), vy: dy / d * sp });
+  }
+
+  function spawnWave() {
+    const pool = level === 1 ? ['e1', 'e1', 'e2', 'e3'] : ['e1', 'e2', 'e3', 'e3'];
+    const type = pool[Math.floor(Math.random() * pool.length)];
+    const n = 3 + Math.floor(Math.random() * 3);
+    const by = rnd(22, 66);
+    for (let i = 0; i < n; i++) {
+      enemies.push({
+        type, i, x: W + 4 + i * (type === 'e3' ? 11 : 15),
+        by: type === 'e2' ? by + (i % 2 ? 9 : -9) : by,
+        y: by, hp: type === 'e2' ? 2 : 1, fire: rnd(50, 140), flash: 0
+      });
+    }
+    spawnT = Math.max(70, 150 - level * 12) + n * 10;
+  }
+
+  function spawnBoss() {
+    const hp = 24 + level * 8;
+    boss = { x: W + 2, y: 40, hp, max: hp, ph: 0, fire: 80, n: 0, on: false, flash: 0 };
+  }
+
+  const PTS = { e1: 10, e2: 25, e3: 15 };
+  function killEnemy(e) {
+    score += PTS[e.type];
+    boom(e.x + 1, e.y);
+    sfx.boom();
+    if (Math.random() < 0.09) items.push({ type: Math.random() < 0.45 ? 'iheart' : 'itriple', x: e.x, y: e.y });
+  }
+
+  function hurt() {
+    if (player.inv > 0) return;
+    lives--; shake = 14; triple = 0;
+    boom(player.x + 3, player.y + 1);
+    player.inv = 120;
+    if (lives <= 0) {
+      state = 'over'; sfx.over();
+      if (score > hi) {
+        hi = score; newRecord = true;
+        try { localStorage.setItem('spaceblast.hi', String(hi)); } catch (e) {}
+      }
+    } else sfx.hit();
+  }
+
+  // ---------- Input ----------
+  const K = { left: 0, right: 0, up: 0, down: 0, fire: 0 };
+  const MAP = {
+    ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+    ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', Space: 'fire'
+  };
+  let tvOn = true;
+
+  function togglePause() {
+    if (state === 'play') state = 'pause';
+    else if (state === 'pause') state = 'play';
+  }
+
+  const picture = document.getElementById('picture');
+  const led = document.getElementById('led');
+  const chan = document.getElementById('chan');
+  const knobColor = document.getElementById('knobColor');
+  const knobSound = document.getElementById('knobSound');
+  const powerBtn = document.getElementById('power');
+
+  function applyPalette() {
+    pal = PALS[palName];
+    buildAll();
+    document.documentElement.style.setProperty('--glow', tvOn ? pal.glow : 'transparent');
+    chan.textContent = palName === 'lcd' ? '01' : '02';
+    knobColor.style.setProperty('--rot', palName === 'lcd' ? '-40deg' : '40deg');
+  }
+  function togglePal() { palName = palName === 'lcd' ? 'nes' : 'lcd'; applyPalette(); tone(440, 0.04, 'square', 0, 0.03); }
+  function toggleMute() {
+    muted = !muted;
+    knobSound.style.setProperty('--rot', muted ? '-130deg' : '-40deg');
+    if (!muted) tone(660, 0.05, 'square', 0, 0.04);
+  }
+  function togglePower() {
+    tvOn = !tvOn;
+    picture.classList.toggle('on', tvOn);
+    picture.classList.toggle('off', !tvOn);
+    led.classList.toggle('dead', !tvOn);
+    powerBtn.textContent = tvOn ? 'ВКЛ' : 'ВЫКЛ';
+    document.documentElement.style.setProperty('--glow', tvOn ? pal.glow : 'transparent');
+    if (!tvOn && state === 'play') state = 'pause';
+    tone(tvOn ? 120 : 90, 0.15, 'sine', tvOn ? 60 : 30, 0.08);
+  }
+
+  addEventListener('keydown', e => {
+    unlockAudio();
+    if (MAP[e.code]) { K[MAP[e.code]] = 1; e.preventDefault(); }
+    if (e.code === 'Tab') { e.preventDefault(); if (tvOn && !e.repeat) togglePause(); return; }
+    if (!tvOn || e.repeat) return;
+    if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+      e.preventDefault();
+      if (state === 'title' || state === 'over') startGame();
+      else if (state === 'pause') togglePause();
+    }
+    if (e.code === 'KeyC') togglePal();
+    if (e.code === 'KeyM') toggleMute();
+  });
+  addEventListener('keyup', e => { if (MAP[e.code]) K[MAP[e.code]] = 0; });
+  addEventListener('blur', () => {
+    for (const k in K) K[k] = 0;
+    if (state === 'play') state = 'pause';
+  });
+
+  const refocus = () => tv.focus({ preventScroll: true });
+  knobColor.addEventListener('click', () => { unlockAudio(); togglePal(); refocus(); });
+  knobSound.addEventListener('click', () => { unlockAudio(); toggleMute(); refocus(); });
+  powerBtn.addEventListener('click', () => { unlockAudio(); togglePower(); refocus(); });
+  stage.addEventListener('pointerdown', e => { if (!e.target.closest('button')) { unlockAudio(); refocus(); } });
+
+  // ---------- Update ----------
+  function update() {
+    t++;
+    if (state === 'pause' || !tvOn) return;
+
+    for (const s of stars) {
+      s.x -= s.l ? 0.6 : 0.25;
+      if (s.x < 0) { s.x += W; s.y = rnd(TOP + 1, H - 14); }
+    }
+    tAcc += 0.5;
+    while (tAcc >= 1) { genCol(); tAcc -= 1; }
+    for (const b of booms) b.f++;
+    booms = booms.filter(b => b.f < 15);
+    if (shake > 0) shake--;
+
+    if (state !== 'play') return;
+    if (banner > 0) banner--;
+
+    // Player
+    const dx = K.right - K.left, dy = K.down - K.up;
+    player.x = clamp(player.x + dx * 1.3, 1, W - 14);
+    player.y = clamp(player.y + dy * 1.3, TOP + 1, H - 8);
+    if (player.cd > 0) player.cd--;
+    if (player.inv > 0) player.inv--;
+    if (triple > 0) triple--;
+    if (K.fire && player.cd === 0) {
+      const bx = player.x + 11, by = player.y + 3;
+      bullets.push({ x: bx, y: by, vy: 0 });
+      if (triple > 0) { bullets.push({ x: bx, y: by, vy: -0.4 }); bullets.push({ x: bx, y: by, vy: 0.4 }); }
+      player.cd = 9;
+      sfx.shoot();
+    }
+
+    // Spawning
+    if (!boss && !warn) {
+      if (score >= nextBoss) warn = 150;
+      else if (--spawnT <= 0) spawnWave();
+    }
+    if (warn > 0) {
+      if (warn % 30 === 0) sfx.warn();
+      if (--warn === 0) spawnBoss();
+    }
+
+    // Bullets
+    for (const b of bullets) { b.x += 3; b.y += b.vy; }
+    bullets = bullets.filter(b => b.x < W && b.y > TOP && b.y < H && !b.dead);
+    for (const b of ebullets) { b.x += b.vx; b.y += b.vy; }
+    ebullets = ebullets.filter(b => b.x > -3 && b.x < W + 3 && b.y > TOP - 2 && b.y < H + 2 && !b.dead);
+
+    // Enemies
+    const spd = 1 + (level - 1) * 0.15;
+    for (const e of enemies) {
+      if (e.type === 'e1') { e.x -= 0.7 * spd; e.y = e.by + Math.sin(e.x * 0.07 + e.i) * 12; }
+      else if (e.type === 'e2') {
+        e.x -= 0.45 * spd; e.y = e.by;
+        if (--e.fire <= 0 && e.x < W - 8 && e.x > 30) {
+          shootAt(e.x, e.y + 2, 1.1); sfx.eshot();
+          e.fire = Math.max(60, rnd(110, 190) - level * 8);
+        }
+      } else {
+        e.x -= 1.1 * spd;
+        if (e.x < W - 40) e.y += clamp(player.y - e.y, -0.45, 0.45);
+      }
+      e.y = clamp(e.y, TOP + 1, H - 8);
+      if (e.flash > 0) e.flash--;
+    }
+
+    // Boss
+    if (boss) {
+      if (boss.x > W - 24) boss.x -= 0.4; else boss.on = true;
+      boss.ph += 0.018 + level * 0.004;
+      boss.y = clamp(44 + Math.sin(boss.ph) * 26, TOP + 2, H - 16);
+      if (boss.flash > 0) boss.flash--;
+      if (boss.on && --boss.fire <= 0) {
+        if (boss.n++ % 3 < 2) for (const k of [-0.5, 0, 0.5]) ebullets.push({ x: boss.x, y: boss.y + 7, vx: -1.3, vy: k });
+        else shootAt(boss.x, boss.y + 7, 1.7);
+        sfx.eshot();
+        boss.fire = Math.max(28, 60 - level * 5);
+      }
+    }
+
+    // Items
+    for (const it of items) { it.x -= 0.5; it.y += Math.sin(t * 0.1) * 0.2; }
+
+    // Collisions: player bullets
+    for (const b of bullets) {
+      for (const e of enemies) {
+        if (e.dead) continue;
+        const sz = SIZE[e.type];
+        if (ov(b.x, b.y, 3, 1, e.x, e.y, sz.w, sz.h)) {
+          b.dead = true; e.hp--; e.flash = 6;
+          if (e.hp <= 0) { e.dead = true; killEnemy(e); } else tone(500, 0.03, 'square', 0, 0.03);
+          break;
+        }
+      }
+      if (!b.dead && boss && boss.on && ov(b.x, b.y, 3, 1, boss.x, boss.y, 20, 14)) {
+        b.dead = true; boss.hp--; boss.flash = 4;
+        tone(400, 0.03, 'square', 0, 0.03);
+        if (boss.hp <= 0) {
+          for (let i = 0; i < 10; i++) boom(boss.x + rnd(0, 16), boss.y + rnd(0, 10), i * 6);
+          score += 500; level++; nextBoss = score + 1500; banner = 150;
+          boss = null; ebullets = [];
+          sfx.bossdown();
+        }
+      }
+    }
+
+    // Collisions: player
+    const px = player.x + 1, py = player.y + 1, pw = 10, ph = 5;
+    for (const e of enemies) {
+      if (e.dead) continue;
+      const sz = SIZE[e.type];
+      if (ov(px, py, pw, ph, e.x, e.y, sz.w, sz.h)) { e.dead = true; killEnemy(e); hurt(); }
+    }
+    for (const b of ebullets) if (ov(px, py, pw, ph, b.x, b.y, 2, 2)) { b.dead = true; hurt(); }
+    if (boss && ov(px, py, pw, ph, boss.x, boss.y, 20, 14)) hurt();
+    for (let c = Math.floor(player.x) + 1; c < player.x + 11; c += 2) {
+      if (player.y + 7 > H - bot[c] + 1) { hurt(); player.y = Math.min(player.y, H - bot[c] - 8); break; }
+      if (topT[c] && player.y < TOP + topT[c] - 1) { hurt(); player.y = Math.max(player.y, TOP + topT[c]); break; }
+    }
+    for (const it of items) {
+      if (ov(px, py, pw, ph, it.x, it.y, 7, 6)) {
+        it.dead = true; sfx.up(); score += 5;
+        if (it.type === 'iheart') lives = Math.min(5, lives + 1); else triple = 600;
+      }
+    }
+
+    enemies = enemies.filter(e => !e.dead && e.x > -12);
+    items = items.filter(it => !it.dead && it.x > -8);
+  }
+
+  // ---------- Draw ----------
+  function drawTerrain() {
+    for (let x = 0; x < W; x++) {
+      const h = bot[x];
+      ctx.fillStyle = pal.tBody; ctx.fillRect(x, H - h, 1, h);
+      ctx.fillStyle = pal.tEdge; ctx.fillRect(x, H - h, 1, 1);
+      ctx.fillStyle = pal.tDot;
+      for (let y = H - h + 2; y < H; y++) if ((col + x + y) % 4 === 0) ctx.fillRect(x, y, 1, 1);
+      const th = topT[x];
+      if (th > 0) {
+        ctx.fillStyle = pal.tBody; ctx.fillRect(x, TOP, 1, th);
+        ctx.fillStyle = pal.tEdge; ctx.fillRect(x, TOP + th - 1, 1, 1);
+        ctx.fillStyle = pal.tDot;
+        for (let y = TOP; y < TOP + th - 2; y++) if ((col + x + y) % 4 === 0) ctx.fillRect(x, y, 1, 1);
+      }
+    }
+  }
+
+  function drawWorld(withActors) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = pal.bg;
+    ctx.fillRect(0, 0, W, H);
+    const ox = shake > 0 ? Math.round(rnd(-2, 2)) : 0, oy = shake > 0 ? Math.round(rnd(-1, 1)) : 0;
+    ctx.setTransform(1, 0, 0, 1, ox, oy);
+    for (const s of stars) { ctx.fillStyle = s.l ? pal.fg : pal.dim; ctx.fillRect(s.x | 0, s.y | 0, 1, 1); }
+    drawTerrain();
+    if (withActors) {
+      const af = (t >> 4) & 1;
+      for (const it of items) spr(it.type, 0, it.x, it.y);
+      for (const e of enemies) if (!(e.flash & 2)) spr(e.type, af, e.x, e.y);
+      if (boss && !(boss.flash & 2)) spr('boss', 0, boss.x, boss.y);
+      for (const b of bullets) spr('pb', 0, b.x, b.y);
+      for (const b of ebullets) spr('eb', 0, b.x, b.y);
+      if (state !== 'over' && !(player.inv > 0 && (t >> 2) & 1)) spr('player', (t >> 2) & 1, player.x, player.y);
+    }
+    for (const b of booms) if (b.f >= 0) spr('boom', Math.min(2, (b.f / 5) | 0), b.x - 2, b.y - 1);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  function drawHud() {
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, TOP);
+    for (let i = 0; i < lives; i++) spr('hheart', 0, 2 + i * 6, 1);
+    text(pad(score), W - 2 - textW('00000'), 1);
+    if (triple > 0) {
+      text('3X', 36, 1);
+      ctx.fillStyle = pal.fg; ctx.fillRect(45, 3, Math.ceil(triple / 600 * 18), 1);
+    }
+    if (boss) {
+      text('BOSS', 70, 1);
+      ctx.fillStyle = pal.fg;
+      ctx.fillRect(87, 1, 42, 5);
+      ctx.fillStyle = pal.bg; ctx.fillRect(88, 2, 40, 3);
+      ctx.fillStyle = pal.mono ? pal.fg : '#f83800';
+      ctx.fillRect(88, 2, Math.ceil(boss.hp / boss.max * 40), 3);
+    }
+    ctx.fillStyle = pal.fg;
+    for (let x = 0; x < W; x += 2) ctx.fillRect(x, TOP - 1, 1, 1);
+  }
+
+  function panel(x, y, w, h) {
+    ctx.fillStyle = pal.fg; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = pal.bg; ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
+  }
+
+  function draw() {
+    if (state === 'title') {
+      drawWorld(false);
+      textC('SPACE', 12, 3);
+      textC('BLAST', 30, 3);
+      spr('player', (t >> 2) & 1, 24 + Math.sin(t * 0.03) * 8, 52 + Math.sin(t * 0.05) * 3);
+      spr('e1', (t >> 4) & 1, 128 + Math.sin(t * 0.04) * 4, 50 + Math.cos(t * 0.05) * 4);
+      spr('e3', (t >> 4) & 1, 112 + Math.cos(t * 0.03) * 5, 58);
+      if ((t >> 5) & 1) textC('PRESS ENTER', 64, 1);
+      textC('HI ' + pad(hi), 72, 1);
+      return;
+    }
+    drawWorld(true);
+    drawHud();
+    if (state === 'play') {
+      if (warn > 0 && (t >> 3) & 1) textC('WARNING!', 40, 2);
+      else if (banner > 0 && (t >> 4) & 1) textC('LEVEL ' + level, 40, 2);
+    } else if (state === 'pause') {
+      panel(48, 32, 72, 30);
+      textC('PAUSE', 37, 2);
+      if ((t >> 5) & 1) textC('TAB', 52, 1);
+    } else if (state === 'over') {
+      panel(28, 18, 112, 62);
+      textC('GAME OVER', 23, 2);
+      textC('SCORE ' + pad(score), 39, 1);
+      textC('HI ' + pad(hi), 47, 1);
+      if (newRecord && (t >> 3) & 1) textC('NEW RECORD!', 56, 1);
+      if ((t >> 5) & 1) textC('PRESS ENTER', 68, 1);
+    }
+  }
+
+  // ---------- Loop ----------
+  const STEP = 1000 / 60;
+  let last = performance.now(), acc = 0;
+  function frame(now) {
+    acc += Math.min(100, now - last);
+    last = now;
+    while (acc >= STEP) { update(); acc -= STEP; }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  applyPalette();
+  refocus();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
